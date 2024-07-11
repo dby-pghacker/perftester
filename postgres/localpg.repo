@@ -1,0 +1,6 @@
+[oriolepg]
+name=Local Postgres builds $releasever
+baseurl=file:///host/pgbuilder/rpms
+enabled=1
+gpgcheck=0
+protect=1

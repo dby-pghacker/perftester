@@ -1,0 +1,18 @@
+---
+dsn:
+  host: postgres
+  port: 5432
+  user: postgres
+  dbname: postgres
+
+retries: 60
+delay: 1s
+debug: false
+
+tests:
+  - query: 'select datname from pg_database order by 1'
+    name: 'databases'
+    results:
+      - datname: 'postgres'
+      - datname: 'template0'
+      - datname: 'template1'

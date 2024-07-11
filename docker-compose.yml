@@ -1,0 +1,66 @@
+services:
+  pgbuilder:
+    image: ghcr.io/dby-pghacker/pgbuilder:${DISTRO}${DISTRO_RELEASE}
+    command:
+      - bash
+      - -c
+      #- while true; do sleep 1; done
+      - |
+        cd /host/pgbuilder
+        git config --global --add safe.directory '*'
+        make
+    environment:
+      PGBUILDER_REMOTE: ${PGBUILDER_REMOTE}
+      PGBUILDER_BRANCH: ${PGBUILDER_BRANCH}
+    platform: linux/amd64
+    #platform: linux/amd64
+    volumes:
+      - ./:/host
+  postgres:
+    image: ${DISTRO}:${DISTRO_RELEASE}
+    command:
+      - /bin/bash
+      - -c
+      #- while true; do sleep 1; done
+      - |
+        dnf -y install make
+        cd /host/postgres; make ;
+        touch /host/busy ;
+        while test -f /host/busy; do sleep 10; done
+    platform: linux/amd64
+    volumes:
+      - ./:/host
+    #depends_on:
+    #  pgbuilder:
+    #    condition: service_completed_successfully
+    #healthcheck:
+    #  test: ['CMD', '/host/postgres/healthy.sh']
+    #  interval: 5s
+    #  timeout: 3s
+    #  retries: 30
+    cap_add:
+      - CAP_AUDIT_WRITE
+  pgtester:
+    image: mannemsolutions/pgtester
+    command:
+      - pgtester
+      - /host/tests
+    platform: linux/amd64
+    volumes:
+      - ./:/host
+    #depends_on:
+    #  postgres:
+    #    condition: service_completed_successfully
+  pg_tps_optimizer:
+    image: mannemsolutions/pg_tps_optimizer
+    environment:
+      PGDATABASE: postgres
+      PGUSER: postgres
+      PGHOST: postgres
+      PGTPSRANGE: 1:100
+    platform: linux/amd64
+    volumes:
+      - ./:/host
+    #depends_on:
+    #  pgtester:
+    #    condition: service_completed_successfully

@@ -1,0 +1,3 @@
+[submodule "pgbuilder/postgres"]
+	path = pgbuilder/postgres
+	url = https://github.com/dby-pghacker/postgres.git

@@ -1,0 +1,56 @@
+# Refer to https://github.com/marketplace/actions/rust-release-binary for more info
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Remote branch to use. This should be a PostgreSQL build branch
+        required: true
+        default: 'main'
+      remote:
+        description: Remote to use. This should be a PostgreSQL build repository.
+        required: false
+        default: 'https://github.com/dby-pghacker/postgres.git'
+
+jobs:
+  unittest:
+    name: unittest ${{ matrix.distro }} v${{ matrix.release }}
+    runs-on: ubuntu-latest
+    env:
+      DISTRO: ${{ matrix.distro }}
+      DISTRO_RELEASE: ${{ matrix.release }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: 'rockylinux'
+            release: '8'
+          #- distro: 'rockylinux'
+          #  release: '9'
+          #- distro: 'fedora'
+          #  release: '38'
+          #- distro: 'fedora'
+          #  release: '39'
+    steps:
+      - uses: actions/checkout@master
+      - name: update to docker-compose v2
+        run: |
+          sudo apt-get install -y curl
+          sudo curl -SL https://github.com/docker/compose/releases/download/v2.3.3/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+      - name: compose
+        run: |
+          docker-compose --version
+          echo $PGVERSION
+      - name: pull images
+        run: docker pull "ghcr.io/dby-pghacker/pgbuilder:${DISTRO}${DISTRO_RELEASE}"
+      - name: pgbuilder
+        run: docker-compose up pgbuilder --no-deps --exit-code-from pgbuilder
+        env:
+          PGBUILDER_REMOTE: ${{ inputs.remote }}
+          PGBUILDER_BRANCH: ${{ inputs.branch }}
+      - name: postgres
+        run: docker-compose up -d postgres --no-deps
+      - name: pgtester
+        run: docker-compose up pgtester --no-deps --exit-code-from pgtester
+      - name: pg_tps_optimizer
+        run: docker-compose up pg_tps_optimizer --no-deps --exit-code-from pg_tps_optimizer
